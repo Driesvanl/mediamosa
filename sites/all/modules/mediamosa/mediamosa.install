@@ -3258,7 +3258,7 @@ function mediamosa_update_7130() {
   mediamosa_io::move($path . '/data/simpletest', $path . '/media/simpletest');
 }
 
-/**
+/*
  * Upgrade the default still size and tune yamdi and mp4box hinting down.
  */
 function mediamosa_update_7131() {
@@ -3266,3 +3266,48 @@ function mediamosa_update_7131() {
   db_query("ALTER TABLE {mediamosa_app} CHANGE COLUMN always_insert_md always_insert_md enum('FALSE','TRUE') NOT NULL DEFAULT 'FALSE' COMMENT 'Always hint (make streamable) flv files.'");
   db_query("ALTER TABLE {mediamosa_app} CHANGE COLUMN still_default_size still_default_size varchar(25) NULL DEFAULT '640x360' COMMENT 'The default size of the still image.'");
 }
+
+/**
+ * Clean up current tickets, as these moved and are no longer valid.
+ */
+function mediamosa_update_7132() {
+  // Get the 3.0-- links location.
+  $ticket_play_location = mediamosa_configuration_storage::mount_point_get() . 'links' . DIRECTORY_SEPARATOR;
+
+  // Clean up the play tickets.
+  mediamosa_io::exec(
+    strtr(
+      'find @ticket_play_location/. -maxdepth 2 -mindepth 1 -name "@wildmatch" -type l -delete',
+      array(
+        '@ticket_play_location' => $ticket_play_location,
+        '@wildmatch' => str_repeat('?', mediamosa_settings::UUID_LENGTH),
+      )
+    )
+  );
+
+  // Clean up the tickets with extensions
+  mediamosa_io::exec(
+    strtr(
+      'find @ticket_play_location/. -maxdepth 2 -mindepth 1 -name "@wildmatch.*" -type l -delete',
+      array(
+        '@ticket_play_location' => $ticket_play_location,
+        '@wildmatch' => str_repeat('?', mediamosa_settings::UUID_LENGTH),
+      )
+    )
+  );
+}
+
+/**
+ * Replace the /ticket server streaming urls with the new /media urls.
+ */
+function mediamosa_update_7133() {
+  // Update the MediaMosa server for still to support /media now.
+  db_update('mediamosa_server')
+    ->fields(array('server_path' => '{base_uri}media/{TICKET}'))
+    ->condition('server_type', 'streaming')
+    ->condition('server_path', '{base_uri}ticket/{TICKET}')
+    ->execute();
+
+  return 'The /ticket server urls has been replaced with /media. Please check your MediaMosa steaming server definitions if all your streaming paths where changed.';
+}
+

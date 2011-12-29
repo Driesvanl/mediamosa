@@ -121,15 +121,6 @@ class mediamosa_configuration_storage {
   }
 
   /**
-   * Return the default path for the play ticket.
-   *
-   * @return string
-   */
-  static public function ticket_play_location_get($app_id = -1) {
-    return self::mount_point_get() . mediamosa_settings::PLAY_TICKET_LOCATION . DIRECTORY_SEPARATOR . ($app_id >= 0 ? $app_id . DIRECTORY_SEPARATOR : '');
-  }
-
-  /**
    * Return the default path for the download ticket.
    * Download dir same as play dir.
    *
@@ -193,7 +184,6 @@ class mediamosa_configuration_storage {
 
     // Full path?
     if ($app_id > 0) {
-      assert(!empty($mediafile_id));
       $path .= $app_id . DIRECTORY_SEPARATOR . (empty($mediafile_id) ? '' : $mediafile_id[0] . DIRECTORY_SEPARATOR);
     }
 
@@ -272,13 +262,42 @@ class mediamosa_configuration_storage {
   }
 
   /**
-   * Map the object ID to store file into location and
-   * filename. Format: ID[0]/ID
+   * Create the permanent uri.
    *
-   * @param string $id
+   * @param $app_id
+   *   The client application that is managing the object_id.
+   * @param $object_id
+   *   The object_id is either the ticket ID or the ID of the object.
    */
-  static public function objectid_to_location($id, $ds = DIRECTORY_SEPARATOR) {
-    return $id[0] . $ds . $id;
+  static public function objectid_to_uri($app_id, $object_id) {
+    return $app_id . '/' . self::objectid_to_location($object_id, '/');
+  }
+
+  /**
+   * Create the temporary uri.
+   *
+   * @param $app_id
+   *   The client application that is managing the object_id.
+   * @param $object_id
+   *   The object_id is either the ticket ID or the ID of the object.
+   */
+  static public function objectid_to_ticket_uri($app_id, $object_id) {
+    return mediamosa_settings::SAN_NAS_MEDIA_FOLDER . '/' . $app_id . '/' . self::objectid_to_location($object_id, '/');
+  }
+
+  /**
+   * Map the object ID to store file into location and filename.
+   *
+   * Format: $object_id[0]/$object_id
+   *
+   * @param $object_id
+   *   The object_id is either the ticket ID or the ID of the object.
+   * @param $ds
+   *   Depending on the type, its either '/' for uri's or DIRECTORY_SEPARATOR
+   *   for filesystem links.
+   */
+  static public function objectid_to_location($object_id, $ds = DIRECTORY_SEPARATOR) {
+    return $object_id[0] . $ds . $object_id;
   }
 
   /**

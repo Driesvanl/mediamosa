@@ -733,3 +733,20 @@ function mediamosa_mediamosa_search_engine() {
     'description' => t('The default search engine for searching in MediaMosa. This search engine is always available.'),
   ));
 }
+
+/**
+ * Implements hook_file_mimetype_mapping_alter().
+ */
+function mediamosa_file_mimetype_mapping_alter(&$mapping) {
+  if (array_search('video/webm', $mapping['mimetypes']) === FALSE) {
+    // Add missing mimetypes.
+    $mapping['mimetypes'][] = 'video/webm';
+    $mapping['mimetypes'][] = 'audio/webm';
+  }
+
+  // Webm.
+  $webm = array_search('video/webm', $mapping['mimetypes']);
+
+  // Check if video/webm is already added.
+  $mapping['extensions']['webm'] = $webm;
+}

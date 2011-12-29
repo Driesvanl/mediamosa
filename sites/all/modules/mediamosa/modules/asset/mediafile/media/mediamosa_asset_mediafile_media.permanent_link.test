@@ -41,7 +41,7 @@ class MediaMosaAssetMediafilePermanentMediaTestCaseEgaJob extends MediaMosaTestC
       'group' => MEDIAMOSA_TEST_GROUP_MEDIAMOSA_CORE_STILL,
     );
   }
-
+/*
   // ------------------------------------------------------------------ Tests.
   public function testStillPermanentLink() {
 
@@ -419,5 +419,19 @@ class MediaMosaAssetMediafilePermanentMediaTestCaseEgaJob extends MediaMosaTestC
 
     // Must perm. link.
     $this->assertFalse(stripos($asset['vpx_still_url'], '/media/ticket/'), 'Must be perm. link');
+  }
+
+  /**
+   * Normal play mediafiles.
+   */
+  public function testPermanentLink() {
+    // Create upload file.
+    $upload = $this->uploadTestFile();
+    $asset_id = $upload['asset_id'];
+    $mediafile_id = $upload['mediafile_id'];
+
+
+
+
   }
 }

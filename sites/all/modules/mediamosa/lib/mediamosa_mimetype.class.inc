@@ -31,7 +31,9 @@
 class mediamosa_mimetype {
   // ---------------------------------------------------------------- Functions.
   /**
-   * Translate the file extension to a mimetype.
+   * Translate the file extension to a mimetype. This translation back is not
+   * reliable as some extensions can have more than 1 mime-type, like webm has
+   * an video/webm and audio/webm variant.
    *
    * @param $extension
    *   The extension to map to mimetype.

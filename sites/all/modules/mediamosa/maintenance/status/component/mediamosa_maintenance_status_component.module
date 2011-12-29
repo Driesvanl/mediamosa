@@ -107,7 +107,7 @@ function mediamosa_maintenance_status_component_generate() {
     'is_writeable' => array(),
   );
 
-  $dirs = array('data', 'data/stills', 'data/transcode', 'links', 'download_links', 'media', 'media/ticket', 'ftp');
+  $dirs = array('data', 'data/stills', 'data/transcode', 'download_links', 'media', 'media/ticket', 'ftp');
   foreach ($dirs as $dir) {
     $checks = _mediamosa_maintenance_status_component_directory($mount_point . $dir, $checks);
   }

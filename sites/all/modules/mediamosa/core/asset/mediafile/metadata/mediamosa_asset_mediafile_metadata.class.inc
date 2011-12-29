@@ -582,6 +582,7 @@ class mediamosa_asset_mediafile_metadata {
     if (isset($mediafile_metadata[$mediafile_id][$prop_name]) && !isset($mediafile_metadata[$mediafile_id][$prop_name][$type])) {
       mediamosa_debug::log($prop_name);
       mediamosa_watchdog::log_export($mediafile_metadata[$mediafile_id]);
+
       throw new mediamosa_exception_program_error('Unknown metadata property type; @type', array('@type' => $type));
     }
 

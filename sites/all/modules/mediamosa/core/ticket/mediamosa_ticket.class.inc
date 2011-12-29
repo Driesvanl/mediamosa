@@ -171,7 +171,7 @@ class mediamosa_ticket {
         $file_ext = mediamosa_asset_mediafile::get_file_extension($still_id);
 
         // Attach ext.
-        $ticket_id = $ticket_id . '.' . $file_ext;
+        $ticket_id .= '.' . $file_ext;
 
         $ticket_type = self::TICKET_TYPE_STILL;
         $ticket_target = mediamosa_configuration_storage::data_still_get_file($still_id);
@@ -194,20 +194,23 @@ class mediamosa_ticket {
         $ticket_type = self::TICKET_TYPE_PLAY;
         $ticket_target = mediamosa_configuration_storage::mediafile_id_filename_get($mediafile_ext[mediamosa_asset_mediafile_db::ID]);
 
+        // Need extension.
+        $file_ext = '';
+
         // Now based on certain extensions, attach the fileext. to the filename.
         if (!empty($mediafile_ext['metadata']['container_type'])) {
           switch ($mediafile_ext['metadata']['container_type']) {
             case mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_FLV:
-              $ticket_id .= '.flv';
+              $file_ext .= 'flv';
               break;
             case mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_MP4:
-              $ticket_id .= '.mp4';
+              $file_ext .= 'mp4';
               break;
             case mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_MP3:
-              $ticket_id .= '.mp3';
+              $file_ext .= 'mp3';
               break;
             case mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_OGG:
-              $ticket_id .= '.ogg';
+              $file_ext .= 'ogg';
               break;
             case mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_WEBM:
               $ticket_id .= '.webm';
@@ -215,7 +218,17 @@ class mediamosa_ticket {
           }
         }
 
-        $ticket_symlink = mediamosa_configuration_storage::ticket_play_location_get($app_id) . DIRECTORY_SEPARATOR . $ticket_id;
+        if (empty($file_ext)) {
+          $file_ext = mediamosa_asset_mediafile::get_file_extension($mediafile_ext[mediamosa_asset_mediafile_db::ID]);
+        }
+
+        if (!empty($file_ext)) {
+          // Add ext.
+          $ticket_id .= '.' . $file_ext;
+        }
+
+        // Create link.
+        $ticket_symlink = mediamosa_configuration_storage::media_get_ticket_file($app_id, $ticket_id);
         break;
     }
 
@@ -266,33 +279,6 @@ class mediamosa_ticket {
 
     // Get the current time.
     $db_time_now = mediamosa_datetime::utc_current_timestamp_now();
-
-    // Retrieve location of the play tickets.
-    $ticket_play_location = mediamosa_configuration_storage::ticket_play_location_get();
-
-    // Clean up the play tickets.
-    mediamosa_io::exec(
-      strtr(
-        'find @ticket_play_location/. -maxdepth 2 -mindepth 1 -name "@wildmatch" -type l -mmin +@ticket_expiration -delete',
-        array(
-          '@ticket_play_location' => $ticket_play_location,
-          '@wildmatch' => str_repeat('?', mediamosa_settings::UUID_LENGTH),
-          '@ticket_expiration' => (int) (mediamosa_settings::TICKET_EXPIRATION_PLAY / 60),
-        )
-      )
-    );
-
-    // Clean up the tickets with extensions
-    mediamosa_io::exec(
-      strtr(
-        'find @ticket_play_location/. -maxdepth 2 -mindepth 1 -name "@wildmatch.*" -type l -mmin +@ticket_expiration -delete',
-        array(
-          '@ticket_play_location' => $ticket_play_location,
-          '@wildmatch' => str_repeat('?', mediamosa_settings::UUID_LENGTH),
-          '@ticket_expiration' => (int) (mediamosa_settings::TICKET_EXPIRATION_PLAY / 60),
-        )
-      )
-    );
 
     // Now remove play tickets from the database.
     $result = mediamosa_db::db_query(

@@ -496,7 +496,6 @@ function mediamosa_profile_storage_location_form_submit($form, &$form_state) {
 
   // Other.
   _mediamosa_profile_mkdir($values['current_mount_point'], '/data/transcode');
-  _mediamosa_profile_mkdir($values['current_mount_point'], '/links');
   _mediamosa_profile_mkdir($values['current_mount_point'], '/download_links');
   _mediamosa_profile_mkdir($values['current_mount_point'], '/ftp');
 
@@ -644,14 +643,6 @@ function mediamosa_profile_apache_settings_form() {
   (http://domain/mediamosa), or in the document root (http://domain).
   <p><li>Add the following lines to your default apache definition:</p>
     <pre>" . htmlentities("
-    # MediaMosa tickets
-    Alias !rel_directoryticket !mount_point/links
-    <Directory !mount_point/links>
-      Options FollowSymLinks
-      Order deny,allow
-      Allow from All
-    </Directory>
-
     # Media
     Alias !rel_directorymedia !mount_point/media
     <Directory !mount_point/media>
@@ -703,14 +694,6 @@ function mediamosa_profile_apache_settings_form() {
         Deny from all
         Allow from 127.0.0.1
      </Directory>
-
-    # ticket
-    Alias /ticket !mount_point/links
-    <Directory !mount_point/links>
-      Options FollowSymLinks
-      Order deny,allow
-      Allow from All
-    </Directory>
 </VirtualHost>
 
 <VirtualHost *:80>

@@ -130,8 +130,8 @@ class mediamosa_rest_call_media extends mediamosa_rest_call {
     }
 
     if ($mediaticket_str) {
-      // Before 3.1 we always served the image here. Now we don't because the
-      // REST call should not have been triggered in the first place with
+      // Before 3.1 we always served the mediafile here. Now we don't because
+      // the REST call should not have been triggered in the first place with
       // tickets (Apache is handeling this). Need to warn admin that his
       // configuration does not include the correct configuration for his
       // webserver.

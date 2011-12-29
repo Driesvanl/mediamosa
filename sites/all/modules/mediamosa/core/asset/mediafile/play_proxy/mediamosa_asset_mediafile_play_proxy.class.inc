@@ -356,15 +356,15 @@ class mediamosa_asset_mediafile_play_proxy {
     foreach ($stills as $key => $value) {
       if (mediamosa_unicode::substr($value['ticket'], 0, strlen(mediamosa_settings::SAN_NAS_TICKET_FOLDER . '/')) == mediamosa_settings::SAN_NAS_TICKET_FOLDER . '/') {
         // Remove prefix 'ticket/'.
-        $stills[$key]['still_ticket'] = strtr($streaming_server_uri, array(self::PARAM_URI_TICKET => mediamosa_settings::SAN_NAS_TICKET_FOLDER . '/' . $app_id . '/' . mediamosa_configuration_storage::objectid_to_location(mediamosa_unicode::substr($value['ticket'], strlen(mediamosa_settings::SAN_NAS_TICKET_FOLDER . '/'))), '/'));
+        $stills[$key]['still_ticket'] = strtr($streaming_server_uri, array(self::PARAM_URI_TICKET => mediamosa_configuration_storage::objectid_to_ticket_uri($app_id, mediamosa_unicode::substr($value['ticket'], strlen(mediamosa_settings::SAN_NAS_TICKET_FOLDER . '/'))), '/'));
       }
       else {
-        $stills[$key]['still_ticket'] = strtr($streaming_server_uri, array(self::PARAM_URI_TICKET => $app_id . '/' . mediamosa_configuration_storage::objectid_to_location($value['ticket']), '/'));
+        $stills[$key]['still_ticket'] = strtr($streaming_server_uri, array(self::PARAM_URI_TICKET => mediamosa_configuration_storage::objectid_to_uri($app_id, $value['ticket']), '/'));
       }
     }
 
     // Replace the {TICKET} with value.
-    $streaming_server_ticket_uri = strtr($streaming_server_uri, array(self::PARAM_URI_TICKET => $app_id . '/' . $ticket));
+    $streaming_server_ticket_uri = strtr($streaming_server_uri, array(self::PARAM_URI_TICKET => mediamosa_configuration_storage::objectid_to_ticket_uri($app_id, $ticket)));
 
     // Default empty.
     $variables = array();
@@ -654,18 +654,18 @@ class mediamosa_asset_mediafile_play_proxy {
                   }
 
                   // Create new streaming server URI based on asx file.
-                  $streaming_server_ticket_uri = str_replace('{TICKET}', $app_id . '/' . mediamosa_configuration_storage::objectid_to_location($ticket, '/') . '.asx', $uri);
+                  $streaming_server_ticket_uri = str_replace(self::PARAM_URI_TICKET, mediamosa_configuration_storage::objectid_to_ticket_uri($app_id, $ticket . '.asx'), $uri);
 
                   // Changed to text/html for ticket #188.
                   //'video/x-ms-asx';
                   $content_type = 'text/html';
                 }
                 else {
-                  mediamosa_watchdog::log('Unable to write to .asx file (@filename), falling back to normal object code', array('@filename' => $file_asx), WATCHDOG_CRITICAL, 'playproxy');
+                  mediamosa_watchdog::log('Unable to write to .asx file (@filename), falling back to normal object code (1)', array('@filename' => $file_asx), WATCHDOG_CRITICAL, 'playproxy');
                 }
               }
               else {
-                mediamosa_watchdog::log('Unable to create .asx file (@filename), falling back to normal object code', array('@filename' => $file_asx), WATCHDOG_CRITICAL, 'playproxy');
+                mediamosa_watchdog::log('Unable to create .asx file (@filename), falling back to normal object code (2)', array('@filename' => $file_asx), WATCHDOG_CRITICAL, 'playproxy');
               }
             }
 
@@ -710,8 +710,6 @@ class mediamosa_asset_mediafile_play_proxy {
 
   /**
    * Return a matching mediafile based on the asset_id and a profile_id.
-   *
-   * 1.x: _play_proxy_get_mediafile_id_on_profile
    *
    * @param $asset_id
    * @param $profile_id

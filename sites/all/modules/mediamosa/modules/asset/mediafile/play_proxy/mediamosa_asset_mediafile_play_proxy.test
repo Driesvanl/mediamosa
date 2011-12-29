@@ -52,54 +52,62 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
   public function testPlayProxy() {
 
     // Create a upload test file with asset and mediafile.
-    $a_upload = $this->uploadTestFile();
+    $upload = $this->uploadTestFile();
 
     // First test on the uploaded mediafile if play_proxy works.
 
     // Set the parameters.
-    $a_parameters = array(
+    $parameters = array(
       mediamosa_rest_call_asset_mediafile_play::USER_ID => self::SIMPLETEST_USER_ID,
-      mediamosa_rest_call_asset_mediafile_play::MEDIAFILE_ID => $a_upload['mediafile_id']
+      mediamosa_rest_call_asset_mediafile_play::MEDIAFILE_ID => $upload['mediafile_id']
     );
 
     // Set the Uri.
-    $uri = strtr('asset/@asset_id/play', array('@asset_id' => $a_upload['asset_id']));
+    $uri = strtr('asset/@asset_id/play', array('@asset_id' => $upload['asset_id']));
 
     // Do basic play proxy call.
-    $response = $this->restCallGet($uri, $a_parameters);
-    $ticket_id = $response['xml']->items->item[0]->ticket_id;
-
+    $response = $this->restCallGet($uri, $parameters);
+    $this->var_export($response['xml']->items);
+    $ticket_id = (string) $response['xml']->items->item[0]->ticket_id;
+    $output = (string) $response['xml']->items->item[0]->output;
+$this->pass($ticket_id);
     // Test if the link to file exists.
-    $link_to_file = mediamosa_configuration_storage::ticket_play_location_get($this->a_app[mediamosa_app_db::APP_ID]) . DIRECTORY_SEPARATOR . $ticket_id;
+    $link_to_file = mediamosa_configuration_storage::media_get_ticket_file($this->a_app[mediamosa_app_db::APP_ID], $ticket_id);
 
     // Check if link exists.
-    $this->assertTrue(file_exists($link_to_file), 'Ticket link to file exists');
+    $this->assertTrue(mediamosa_io::file_exists($link_to_file), t('Ticket link (@link_to_file) to file exists', array('@link_to_file' => $link_to_file)));
+
+    // Link to.
+    $link_to_uri = mediamosa_settings::SAN_NAS_MEDIA_FOLDER . '/' . mediamosa_configuration_storage::objectid_to_uri($this->a_app[mediamosa_app_db::APP_ID], $ticket_id);
+
+    // Right side of uri the same?
+    $this->assertTrue(substr($output, -strlen($link_to_uri)) == $link_to_uri, t('URI (@uri) is ok', array('@uri' => $link_to_uri)));
 
     // Now test again, except on a asset that does not exists.
     // Set the parameters.
-    $a_parameters = array(
+    $parameters = array(
       mediamosa_rest_call_asset_mediafile_play::USER_ID => self::SIMPLETEST_USER_ID,
-      mediamosa_rest_call_asset_mediafile_play::MEDIAFILE_ID => $a_upload['mediafile_id']
+      mediamosa_rest_call_asset_mediafile_play::MEDIAFILE_ID => $upload['mediafile_id']
     );
 
     // Set the Uri.
-    $uri = strtr('asset/@asset_id/play', array('@asset_id' => $a_upload['asset_id'] . 'test'));
+    $uri = strtr('asset/@asset_id/play', array('@asset_id' => $upload['asset_id'] . 'test'));
 
     // Now again, but with invalid mediafile_id. Should fail.
-    $response = $this->restCallGet($uri, $a_parameters, array(), array(mediamosa_error::ERRORCODE_ASSET_NOT_FOUND));
+    $response = $this->restCallGet($uri, $parameters, array(), array(mediamosa_error::ERRORCODE_ASSET_NOT_FOUND));
 
     // Now test again, except on a mediafile that does not exists.
     // Set the parameters.
-    $a_parameters = array(
+    $parameters = array(
       mediamosa_rest_call_asset_mediafile_play::USER_ID => self::SIMPLETEST_USER_ID,
-      mediamosa_rest_call_asset_mediafile_play::MEDIAFILE_ID => $a_upload['mediafile_id'] . 'test'
+      mediamosa_rest_call_asset_mediafile_play::MEDIAFILE_ID => $upload['mediafile_id'] . 'test'
     );
 
     // Set the Uri.
-    $uri = strtr('asset/@asset_id/play', array('@asset_id' => $a_upload['asset_id']));
+    $uri = strtr('asset/@asset_id/play', array('@asset_id' => $upload['asset_id']));
 
     // Now again, but with invalid mediafile_id. Should fail.
-    $response = $this->restCallGet($uri, $a_parameters, array(), array(mediamosa_error::ERRORCODE_MEDIAFILE_NOT_FOUND));
+    $response = $this->restCallGet($uri, $parameters, array(), array(mediamosa_error::ERRORCODE_MEDIAFILE_NOT_FOUND));
   }
 
   public function testPlayProxyCleanup() {
@@ -112,7 +120,7 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
     $app_id = $this->a_app[mediamosa_app_db::APP_ID];
 
     // Base path.
-    $ticket_path = mediamosa_configuration_storage::ticket_play_location_get($app_id) . DIRECTORY_SEPARATOR;
+    $ticket_path = mediamosa_configuration_storage::media_get_ticket_path($app_id);
 
     // Test first if ticket get removed when its not in the database.
 
@@ -157,11 +165,11 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
     // Our App ID.
     $app_id = $this->a_app[mediamosa_app_db::APP_ID];
 
-    $a_mediafile_ext['mediafile_id'] = $mediafile_id;
-    $a_mediafile_ext['metadata']['width'] = '640';
-    $a_mediafile_ext['metadata']['height'] = '400';
-    $a_mediafile_ext['metadata']['video_codec'] = '';
-    $a_mediafile_ext['metadata']['mime_type'] = '';
+    $mediafile_ext['mediafile_id'] = $mediafile_id;
+    $mediafile_ext['metadata']['width'] = '640';
+    $mediafile_ext['metadata']['height'] = '400';
+    $mediafile_ext['metadata']['video_codec'] = '';
+    $mediafile_ext['metadata']['mime_type'] = '';
 
     $ticket = mediamosa_db::uuid($this->a_app[mediamosa_app_db::APP_ID]);
 
@@ -181,27 +189,27 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
       mediamosa_asset_mediafile_play_proxy::RESPONSE_URI,
     );
 
-    $a_parameters = array();
+    $parameters = array();
 
-    foreach ($a_response_types as $a_parameters['response']['value']) {
-      foreach ($a_container_types as $a_mediafile_ext['metadata']['container_type']) {
+    foreach ($a_response_types as $parameters['response']['value']) {
+      foreach ($a_container_types as $mediafile_ext['metadata']['container_type']) {
 
         // FLV does not have metafile.
-        if ($a_parameters['response']['value'] == mediamosa_asset_mediafile_play_proxy::RESPONSE_METAFILE &&
-            $a_mediafile_ext['metadata']['container_type'] == mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_FLV) {
+        if ($parameters['response']['value'] == mediamosa_asset_mediafile_play_proxy::RESPONSE_METAFILE &&
+            $mediafile_ext['metadata']['container_type'] == mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_FLV) {
           continue;
         }
 
-        $a_mediafile_ext['filename'] = 'filename.wmv';
-        $a_parameters['start']['value'] = 6000;
-        $a_parameters['duration']['value'] = 4000;
+        $mediafile_ext['filename'] = 'filename.wmv';
+        $parameters['start']['value'] = 6000;
+        $parameters['duration']['value'] = 4000;
 
         try {
           $a_response = mediamosa_asset_mediafile_play_proxy::create_response_1x_to_2x(
             $asset_id,
-            $a_parameters,
+            $parameters,
             $a_asset_info,
-            $a_mediafile_ext,
+            $mediafile_ext,
             $a_asset_metadata,
             $ticket,
             $this->a_app[mediamosa_app_db::APP_ID]
@@ -220,7 +228,7 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
         }
 
         // Check the asx output
-        if ($a_parameters['response']['value'] == mediamosa_asset_mediafile_play_proxy::RESPONSE_METAFILE && $a_mediafile_ext['metadata']['container_type'] == mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_WMV) {
+        if ($parameters['response']['value'] == mediamosa_asset_mediafile_play_proxy::RESPONSE_METAFILE && $mediafile_ext['metadata']['container_type'] == mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_WMV) {
           $tofind = "<asx version=\"3.0\">";
           $this->assertTrue(stripos($a_response['output'], $tofind) !== FALSE, 'Check if asx starttag.');
 
@@ -232,17 +240,17 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
         }
 
         // Check if ASX file was created (we also will remove the file again)
-        if ($a_parameters['response']['value'] == mediamosa_asset_mediafile_play_proxy::RESPONSE_OBJECT && $a_mediafile_ext['metadata']['container_type'] == mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_WMV) {
+        if ($parameters['response']['value'] == mediamosa_asset_mediafile_play_proxy::RESPONSE_OBJECT && $mediafile_ext['metadata']['container_type'] == mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_WMV) {
           $filename = mediamosa_configuration_storage::asx_file_location($app_id, $ticket);
           if (file_exists($filename)) {
             mediamosa_io::unlink($filename);
           }
         }
 
-        if (!($a_parameters['response']['value'] == mediamosa_asset_mediafile_play_proxy::RESPONSE_OBJECT && $a_mediafile_ext['metadata']['container_type'] == mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_WMV)) {
+        if (!($parameters['response']['value'] == mediamosa_asset_mediafile_play_proxy::RESPONSE_OBJECT && $mediafile_ext['metadata']['container_type'] == mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_WMV)) {
           $this->assertTrue(
             isset($a_response['output']) && strpos($a_response['output'], $ticket) !== FALSE,
-            "Check if '" . $a_parameters['response']['value'] . "/" . $a_mediafile_ext['metadata']['container_type'] . "/_play_proxy_create_response()' contains the ticket: " . $ticket);
+            "Check if '" . $parameters['response']['value'] . "/" . $mediafile_ext['metadata']['container_type'] . "/_play_proxy_create_response()' contains the ticket: " . $ticket);
         }
       }
     }
@@ -254,18 +262,18 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
       mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_WMV,
     );
 
-    $a_parameters['response']['value'] = mediamosa_asset_mediafile_play_proxy::RESPONSE_OBJECT;
+    $parameters['response']['value'] = mediamosa_asset_mediafile_play_proxy::RESPONSE_OBJECT;
 
-    foreach ($a_container_types as $a_mediafile_ext['metadata']['container_type']) {
-      $a_mediafile_ext['filename'] = 'filename.wmv';
-      $a_parameters['autostart']['value'] = 'true';
+    foreach ($a_container_types as $mediafile_ext['metadata']['container_type']) {
+      $mediafile_ext['filename'] = 'filename.wmv';
+      $parameters['autostart']['value'] = 'true';
 
       try {
         $a_response = mediamosa_asset_mediafile_play_proxy::create_response_1x_to_2x(
           $asset_id,
-          $a_parameters,
+          $parameters,
           $a_asset_info,
-          $a_mediafile_ext,
+          $mediafile_ext,
           $a_asset_metadata,
           $ticket,
           $this->a_app[mediamosa_app_db::APP_ID]
@@ -283,7 +291,7 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
         continue;
       }
 
-      switch ($a_mediafile_ext['metadata']['container_type']) {
+      switch ($mediafile_ext['metadata']['container_type']) {
         case mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_FLV:
           // Not supported, need to find out if we can add autoStart= to the flv url
           break;
@@ -307,14 +315,14 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
           break;
       }
 
-      $a_parameters['autostart']['value'] = 'false';
+      $parameters['autostart']['value'] = 'false';
 
       try {
         $a_response = mediamosa_asset_mediafile_play_proxy::create_response_1x_to_2x(
           $asset_id,
-          $a_parameters,
+          $parameters,
           $a_asset_info,
-          $a_mediafile_ext,
+          $mediafile_ext,
           $a_asset_metadata,
           $ticket,
           $this->a_app[mediamosa_app_db::APP_ID]
@@ -332,7 +340,7 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
         continue;
       }
 
-      switch ($a_mediafile_ext['metadata']['container_type']) {
+      switch ($mediafile_ext['metadata']['container_type']) {
         case mediamosa_asset_mediafile_play_proxy::CONTAINER_TYPE_FLV:
           // Not supported, need to find out if we can add autoStart= to the flv url
           break;
@@ -431,17 +439,17 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
     );
 
     // Specific codec
-    $a_mediafile_ext = $a_parameters = array();
-    $a_parameters['response']['value'] = mediamosa_asset_mediafile_play_proxy::RESPONSE_URI;
-    $a_mediafile_ext['mediafile_id'] = $mediafile_id;
-    $a_mediafile_ext['metadata']['container_type'] = 'test_container';
-    $a_mediafile_ext['metadata']['video_codec'] = 'h264';
-    $a_mediafile_ext['filename'] = 'filename.wmv';
+    $mediafile_ext = $parameters = array();
+    $parameters['response']['value'] = mediamosa_asset_mediafile_play_proxy::RESPONSE_URI;
+    $mediafile_ext['mediafile_id'] = $mediafile_id;
+    $mediafile_ext['metadata']['container_type'] = 'test_container';
+    $mediafile_ext['metadata']['video_codec'] = 'h264';
+    $mediafile_ext['filename'] = 'filename.wmv';
     $a_response = mediamosa_asset_mediafile_play_proxy::create_response_1x_to_2x(
       $asset_id,
-      $a_parameters,
+      $parameters,
       array(),
-      $a_mediafile_ext,
+      $mediafile_ext,
       array(),
       $ticket,
       $this->a_app[mediamosa_app_db::APP_ID]
@@ -451,16 +459,16 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
     $this->verbose('Response: ' . print_r($a_response, TRUE));
 
     // General container
-    $a_parameters['response']['value'] = mediamosa_asset_mediafile_play_proxy::RESPONSE_URI;
-    $a_mediafile_ext['mediafile_id'] = $mediafile_id;
-    $a_mediafile_ext['metadata']['container_type'] = 'test_container';
-    $a_mediafile_ext['metadata']['video_codec'] = NULL;
-    $a_mediafile_ext['filename'] = 'filename.wmv';
+    $parameters['response']['value'] = mediamosa_asset_mediafile_play_proxy::RESPONSE_URI;
+    $mediafile_ext['mediafile_id'] = $mediafile_id;
+    $mediafile_ext['metadata']['container_type'] = 'test_container';
+    $mediafile_ext['metadata']['video_codec'] = NULL;
+    $mediafile_ext['filename'] = 'filename.wmv';
     $a_response = mediamosa_asset_mediafile_play_proxy::create_response_1x_to_2x(
       $asset_id,
-      $a_parameters,
+      $parameters,
       array(),
-      $a_mediafile_ext,
+      $mediafile_ext,
       array(),
       $ticket,
       $this->a_app[mediamosa_app_db::APP_ID]
@@ -470,16 +478,16 @@ class MediaMosaPlayProxyTestCaseEga extends MediaMosaTestCaseEga {
     $this->verbose('Response: ' . print_r($a_response, TRUE));
 
     // Codec that is not defined (should get defaukt container)
-    $a_parameters['response']['value'] = mediamosa_asset_mediafile_play_proxy::RESPONSE_URI;
-    $a_mediafile_ext['mediafile_id'] = $mediafile_id;
-    $a_mediafile_ext['metadata']['container_type'] = 'test_container';
-    $a_mediafile_ext['metadata']['video_codec'] = 'undef';
-    $a_mediafile_ext['filename'] = 'filename.wmv';
+    $parameters['response']['value'] = mediamosa_asset_mediafile_play_proxy::RESPONSE_URI;
+    $mediafile_ext['mediafile_id'] = $mediafile_id;
+    $mediafile_ext['metadata']['container_type'] = 'test_container';
+    $mediafile_ext['metadata']['video_codec'] = 'undef';
+    $mediafile_ext['filename'] = 'filename.wmv';
     $a_response = mediamosa_asset_mediafile_play_proxy::create_response_1x_to_2x(
       $asset_id,
-      $a_parameters,
+      $parameters,
       array(),
-      $a_mediafile_ext,
+      $mediafile_ext,
       array(),
       $ticket,
       $this->a_app[mediamosa_app_db::APP_ID]
