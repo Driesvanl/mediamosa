@@ -1,0 +1,134 @@
+<?php
+/**
+ * MediaMosa is Open Source Software to build a Full Featured, Webservice Oriented Media Management and
+ * Distribution platform (http://mediamosa.org)
+ *
+ * Copyright (C) 2011 SURFnet BV (http://www.surfnet.nl) and Kennisnet
+ * (http://www.kennisnet.nl)
+ *
+ * MediaMosa is based on the open source Drupal platform and
+ * was originally developed by Madcap BV (http://www.madcap.nl)
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, you can find it at:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ *
+ * @file
+ * CMUSPHINX tool module.
+ */
+
+/**
+ * Implements hook_permission().
+ */
+function mediamosa_tool_cmusphinx_permission() {
+  return array(
+    'access mediamosa tool cmusphinx' =>  array(
+      'title' => t('Access MediaMosa Tool module for CMUSPHINX toolset'),
+      'description' => t('Enables the user to use the CMUSPHINX toolset.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_mediamosa_tool_info().
+ *
+ * @return array
+ *  An array filled with information about the tool.
+ */
+function mediamosa_tool_cmusphinx_mediamosa_tool_info() {
+  return array(mediamosa_tool_cmusphinx::NAME => array(
+    'name' => t('cmusphinx'),
+    'description' => t('The cmusphinx tool for transripting audio/video files.'),
+  ));
+}
+
+/**
+ * Implements hook_mediamosa_tool_mapping().
+ *
+ * @return The mapping array.
+ */
+function mediamosa_tool_cmusphinx_mediamosa_tool_mapping() {
+  return mediamosa_tool_params::get_by_tool(mediamosa_tool_cmusphinx::NAME);
+}
+
+/**
+ * Implements hook_mediamosa_tool_param_checking().
+ *
+ * @return array
+ *  The mapping array.
+ */
+function mediamosa_tool_cmusphinx_mediamosa_tool_param_checking($nice_parameter, $value) {
+  mediamosa_tool_params::check_mapping(mediamosa_tool_cmusphinx::NAME, $nice_parameter, $value);
+}
+
+
+/**
+ * Generate information for the status page.
+ */
+function _mediamosa_tool_cmusphinx_status_generate() {
+  // For several topics we provide a link to webpages with configuration hints.
+  $helper_links = array(
+    'cmusphinx' => l('here', 'http://cmusphinx.sourceforge.net/'),
+  );
+
+  $results = array();
+  $exec_output = array();
+  $found = mediamosa_io::command_installed('/usr/bin/sphinx3_livepretend', $exec_output, array(0,1));
+  $found = (@$exec_output[1] == "USAGE: /usr/bin/sphinx3_livepretend <ctrlfile> <rawdir> <cfgfile>");
+  $status_line = $found ? t("CMU Sphinx 3 installed.") : t('CMUSPHINX not found.');
+  $version = $found ? "3.7" : ''; // CMUSPHINX does not support version requests.
+  $results['app_cmusphinx'] = array(
+    'title' => t('Transcripting tool: CMUSPHINX'),
+    'value' => $status_line,
+    'severity' => _mediamosa_maintenance_status_okerror($found && is_numeric($version)),
+    'description' => $found ? '' : t('Install CMUSPHINX. You can find more information about CMUSPHINX !here', array('!here' => $helper_links['cmusphinx'])),
+  );
+
+  // Making the report.
+  return array(
+    'configuration' => array(
+      'title' => t('Transcripting tool'),
+      'results' => $results,
+    ),
+  );
+}
+
+/**
+ * Implements hook_mediamosa_status_collect().
+ *
+ * @param reset boolean
+ *
+ * @return array
+ *   All the statuses in an array
+ */
+function mediamosa_tool_cmusphinx_mediamosa_status_collect($reset = FALSE) {
+
+  $mediamosa_status_collect = array();
+  if (!$reset) {
+    $mediamosa_status_collect = variable_get('mediamosa_status_cmusphinx_collect_' . mediamosa::get_server_id(), array());
+  }
+
+  //if (empty($mediamosa_status_collect)) {
+    $mediamosa_status_collect = array('time' => REQUEST_TIME, 'statuses' => _mediamosa_tool_cmusphinx_status_generate());
+    variable_set('mediamosa_status_cmusphinx_collect_' . mediamosa::get_server_id(), $mediamosa_status_collect);
+    //}
+
+  return $mediamosa_status_collect['statuses'];
+}
+
+/**
+ * Implements hook_mediamosa_metadata_info().
+ *
+ * This module stores transcript data in its own group.
+ */
+function mediamosa_tool_cmusphinx_mediamosa_metadata_info() {
+  return 'transcript';
+}

@@ -1,0 +1,15 @@
+; $Id: $
+name = "Mediamosa Tool CMUSphinx"
+description = "Mediamosa Tool module for CMUSphinx Toolset"
+package = "MediaMosa - Tool"
+version = "0.1"
+core = 7.x
+
+; Dependencies (module names)
+dependencies[] = mediamosa
+dependencies[] = mediamosa_configuration
+dependencies[] = mediamosa_transcode
+dependencies[] = mediamosa_server
+
+; Used files.
+files[] = mediamosa_tool_cmusphinx.class.inc
