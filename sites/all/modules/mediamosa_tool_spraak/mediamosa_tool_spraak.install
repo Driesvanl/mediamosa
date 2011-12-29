@@ -1,0 +1,139 @@
+<?php
+// $Id$
+
+/**
+ * MediaMosa is Open Source Software to build a Full Featured, Webservice
+ * Oriented Media Management and Distribution platform (http://mediamosa.org)
+ *
+ * Copyright (C) 2011 SURFnet BV (http://www.surfnet.nl) and Kennisnet
+ * (http://www.kennisnet.nl)
+ *
+ * MediaMosa is based on the open source Drupal platform and
+ * was originally developed by Madcap BV (http://www.madcap.nl)
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, you can find it at:
+ * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ */
+
+ /**
+  * @file
+  * SPRAAK tool installer.
+  */
+
+function _mediamosa_tool_spraak_install_params($parameters) {
+  // Insert default mappings as nodes.
+  foreach ($parameters as $param) {
+    $node = mediamosa_node::create_basic_node(mediamosa_node::MEDIAMOSA_NODE_TYPE_TOOL_PARAMS, $param[1]);
+
+    $node->{mediamosa_tool_params_db::TOOL} = $param[0];
+    $node->{mediamosa_tool_params_db::NICE_PARAMETER} = $param[1];
+    $node->{mediamosa_tool_params_db::TOOL_PARAMETER} = $param[2];
+    $node->{mediamosa_tool_params_db::MIN_VALUE} = $param[3];
+    $node->{mediamosa_tool_params_db::MAX_VALUE} = $param[4];
+    $node->{mediamosa_tool_params_db::ALLOWED_VALUE} = $param[5];
+    $node->{mediamosa_tool_params_db::DEFAULT_VALUE} = $param[6];
+    $node->{mediamosa_tool_params_db::REQUIRED} = $param[7];
+    $node->{mediamosa_tool_params_db::DESCRIPTION} = $param[8];
+
+    $node = node_save($node);
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function mediamosa_tool_spraak_install() {
+  // Tool params.
+
+  $a_default_params = array(
+    array('spraak', 'config', '-config', NULL, NULL, array('nbest'), 'nbest', 'FALSE', 'Configuration settings.'),
+    array('spraak', 'lexicon', '-lexicon', NULL, NULL, array('100k', '400k'), '100k', 'FALSE', 'What preset lexicon settings to use.'),
+    array('spraak', 'seconds', '-seconds', NULL, NULL, NULL, NULL, 'FALSE', 'Number of seconds to transcript (0 = no limit).'),
+    array('spraak', 'subtitlefile', '-subtitlefile', NULL, NULL, array('yes', 'no'), 'no', 'FALSE', 'Save the transcription also as a subtitle file.'),
+  );
+
+  _mediamosa_tool_spraak_install_params($a_default_params);
+
+  // Install some predefined spraak transcoding profiles.
+  $a_default_profiles = array(
+    array('SPRAAK nbest speech recognition (100k).', 'FALSE', 'spraak', 'spr', 'config:nbest;lexicon:100k;seconds:0;subtitlefile:no'),
+    array('SPRAAK nbest speech recognition (400k).', 'FALSE', 'spraak', 'spr', 'config:nbest;lexicon:400k;seconds:0;subtitlefile:no'),
+    array('SPRAAK nbest subtitles (100k).', 'FALSE', 'spraak', 'spr', 'config:nbest;lexicon:100k;seconds:0;subtitlefile:yes'),
+  );
+
+  foreach ($a_default_profiles as $a_default_profile) {
+    $node = mediamosa_node::create_basic_node(mediamosa_node::MEDIAMOSA_NODE_TYPE_TRANSCODE_PROFILE, $a_default_profile[0]);
+    $node->{mediamosa_transcode_profile_db::APP_ID} = 0;
+    $node->{mediamosa_transcode_profile_db::VERSION} = 0;
+    $node->{mediamosa_transcode_profile_db::PROFILE} = $a_default_profile[0];
+    $node->{mediamosa_transcode_profile_db::IS_DEFAULT_PROFILE} = $a_default_profile[1];
+    $node->{mediamosa_transcode_profile_db::TOOL} = $a_default_profile[2];
+    $node->{mediamosa_transcode_profile_db::FILE_EXTENSION} = $a_default_profile[3];
+    $node->{mediamosa_transcode_profile_db::COMMAND} = $a_default_profile[4];
+
+    $node = node_save($node);
+  }
+}
+
+/**
+ * Implements hook_unstall().
+ */
+function mediamosa_tool_spraak_uninstall() {
+  // Do nothing. We don't delete the existing data.
+}
+
+/**
+ * Rebuild the registry. We added a new class.
+ */
+function mediamosa_tool_spraak_update_7000() {
+  // Rebuild the registry, added new class.
+  update_sql('DELETE FROM {registry}'); // Don't worry, I know what I'm doing.
+  update_sql('DELETE FROM {registry_file}'); // Clear it too.
+  drupal_flush_all_caches();
+}
+
+/**
+ * Add a transcript metadata field.
+ */
+function mediamosa_tool_spraak_update_7001() {
+  // metadata property to store the transcript data.
+  $property_group_id = mediamosa_asset_metadata_property_group::property_group_create('transcript');
+  mediamosa_asset_metadata_property_group::property_create($property_group_id, 'transcript', 'CHAR');
+}
+
+
+/**
+ * Add a new parameter: lexicon.
+ */
+function mediamosa_tool_spraak_update_7002() {
+
+  $a_default_params = array(
+    array('spraak', 'lexicon', '-lexicon', NULL, NULL, array('100k', '400k'), '100k', 'FALSE', 'What preset lexicon settings to use.'),
+  );
+
+  _mediamosa_tool_spraak_install_params($a_default_params);
+}
+
+/**
+ * Add two new parameters:
+ * - number of seconds to transcript,
+ * - save as a subtitle file.
+ */
+function mediamosa_tool_spraak_update_7003() {
+
+  $a_default_params = array(
+    array('spraak', 'seconds', '-seconds', NULL, NULL, NULL, NULL, 'FALSE', 'Number of seconds to transcript (0 = no limit).'),
+    array('spraak', 'subtitlefile', '-subtitlefile', NULL, NULL, array('yes', 'no'), 'no', 'FALSE', 'Save the transcription also as a subtitle file.'),
+  );
+
+  _mediamosa_tool_spraak_install_params($a_default_params);
+}
